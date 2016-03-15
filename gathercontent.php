@@ -3,7 +3,7 @@
 Plugin Name: GatherContent Importer
 Plugin URI: http://www.gathercontent.com
 Description: Imports items from GatherContent to your wordpress blog
-Version: 2.6.46
+Version: 2.6.46-BU1
 Author: Mathew Chapman
 Author URI: http://www.gathercontent.com
 License: GPL2
@@ -31,7 +31,7 @@ class GatherContent extends GatherContent_Curl {
 	function install($networkwide) {
 		global $wpdb;
 
-		if( function_exists( 'is_multisite' ) && is_multisite() ) {
+		if ( $this->multisite_install() ) {
 
 			if($networkwide) {
 				$old_blog = $wpdb->blogid;
@@ -70,7 +70,7 @@ class GatherContent extends GatherContent_Curl {
 	function uninstall($networkwide) {
 		global $wpdb;
 
-		if( function_exists( 'is_multisite' ) && is_multisite() ) {
+		if ( $this->multisite_install() ) {
 
 			if($networkwide) {
 				$old_blog = $wpdb->blogid;
@@ -93,6 +93,18 @@ class GatherContent extends GatherContent_Curl {
 		$table_name = $wpdb->prefix . 'gathercontent_items';
 
 		$wpdb->query( "DROP TABLE IF EXISTS $table_name" );
+	}
+
+	/**
+	 * Check if GatherContent should be installed all sites in a
+	 * multisite environment or not. Allows a way to override this behavior.
+	 * @return boolean true|false
+	 */
+	function multisite_install() {
+
+		$multisite = function_exists( 'is_multisite' ) && is_multisite();
+
+		return apply_filters( 'gathercontent_multisite_install', $multisite );
 	}
 
 	function init() {
@@ -718,7 +730,7 @@ class GatherContent extends GatherContent_Curl {
 		exit;
 	}
 }
-if ( is_admin() ) {
+if ( is_admin() || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
 	$gc = new GatherContent;
 	register_activation_hook( __FILE__, array( &$gc, 'install' ) );
 	register_deactivation_hook( __FILE__, array( &$gc, 'uninstall' ) );
