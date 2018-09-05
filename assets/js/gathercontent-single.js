@@ -1,8 +1,8 @@
 /**
- * GatherContent Plugin - v3.1.2 - 2017-07-11
+ * GatherContent Plugin - v3.1.9 - 2018-02-14
  * http://www.gathercontent.com
  *
- * Copyright (c) 2017 GatherContent
+ * Copyright (c) 2018 GatherContent
  * Licensed under the GPLv2 license.
  */
 
@@ -434,7 +434,7 @@ module.exports = function (app, $, gc) {
 module.exports = function (app, $, gc) {
 	var thisView;
 	return app.views.statusSelect2.extend({
-		className: 'misc-pub-section misc-pub-post-status',
+		className: 'misc-pub-section',
 		select2template: wp.template('gc-status-select2'),
 		template: wp.template('gc-metabox-statuses'),
 		isOpen: false,
