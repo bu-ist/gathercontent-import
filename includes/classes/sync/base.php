@@ -136,12 +136,12 @@ abstract class Base extends Plugin_Base {
 	 *
 	 * @since  3.0.0
 	 *
-	 * @param  int $mapping_post_id Mapping post ID.
+	 * @param  int $mapping_post Mapping post object.
 	 *
 	 * @return mixed Result of sync. WP_Error on failure.
 	 */
-	public function sync_items( $mapping_post_id ) {
-		$result = $this->_sync_items( $mapping_post_id );
+	public function sync_items( $mapping_post ) {
+		$result = $this->_sync_items( $mapping_post );
 		do_action( 'gc_sync_items_result', $result, $this );
 		return $result;
 	}
@@ -151,15 +151,15 @@ abstract class Base extends Plugin_Base {
 	 *
 	 * @since  3.0.0
 	 *
-	 * @param  int $mapping_post_id Mapping post ID.
+	 * @param  int $mapping_post Mapping post object.
 	 *
 	 * @throws Exception On failure.
 	 *
 	 * @return mixed Result of sync.
 	 */
-	protected function _sync_items( $mapping_post_id ) {
+	protected function _sync_items( $mapping_post ) {
 		try {
-			$this->mapping = Mapping_Post::get( $mapping_post_id, true );
+			$this->mapping = Mapping_Post::get( $mapping_post, true );
 
 			$this->check_mapping_data();
 			$ids = $this->get_items_to_sync( $this->direction );
@@ -433,19 +433,32 @@ abstract class Base extends Plugin_Base {
 	 * @since  3.0.0
 	 * @uses   get_shortcode_regex
 	 *
-	 * @param  string $content  The GC content.
-	 * @param  int    $position Image positional argument.
+	 * @param  string $content The GC content.
+	 * @param  int    $args    Args for field/image positional argument.
 	 *
-	 * @return false|array      Array of attributes on success.
+	 * @return false|array     Array of attributes on success.
 	 */
-	public function get_media_shortcode_attributes( $content, $position ) {
+	public function get_media_shortcode_attributes( $content, $args ) {
+		$args = wp_parse_args( $args, array(
+			'position'     => 1,
+			'field_number' => '',
+		) );
 		preg_match_all( '@\[([^<>&/\[\]\x00-\x20=]++)@', $content, $matches );
 
-		$to_find = array( "media-{$position}" );
+		$suffix = $args['field_number'] > 1 ? '_' . $args['field_number'] : '';
+		$to_find = array( "media{$suffix}-{$args['position']}" );
 		$tagnames = array_intersect( $to_find, $matches[1] );
 
 		if ( empty( $tagnames ) ) {
-			return false;
+			if ( ! $suffix ) {
+				$to_find = array( "media_1-{$args['position']}" );
+				$tagnames = array_intersect( $to_find, $matches[1] );
+				if ( empty( $tagnames ) ) {
+					return false;
+				}
+			} else {
+				return false;
+			}
 		}
 
 		$pattern = get_shortcode_regex( $tagnames );
@@ -454,6 +467,7 @@ abstract class Base extends Plugin_Base {
 		preg_match_all( "/$pattern/", $content, $matches );
 
 		if ( isset( $matches[3], $matches[0] ) && is_array( $matches[3] ) ) {
+			$matches[3] = wp_unslash( $matches[3] ); // Fixes quoted attributes.
 			$replace = array();
 			foreach ( $matches[0] as $index => $shortcode ) {
 				$replace[ $shortcode ] = shortcode_parse_atts( $matches[3][ $index ] );
